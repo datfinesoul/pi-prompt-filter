@@ -13,7 +13,7 @@ Thank you for contributing to pi-prompt-filter.
 
 Requirements:
 
-- Node.js 20 or newer
+- Node.js 22.19 or newer, matching Pi's minimum supported version
 - A current Pi installation for extension smoke testing
 
 Clone the repository and run the tests:
