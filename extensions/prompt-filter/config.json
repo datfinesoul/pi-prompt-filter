@@ -1,12 +1,15 @@
 {
-  "patterns": [
+  "rules": [
     {
+      "id": "ls",
       "pattern": "^ls$"
     },
     {
+      "id": "pwd",
       "pattern": "^pwd$"
     },
     {
+      "id": "git-simple",
       "pattern": "^git\\s+\\S+$"
     }
   ]
