@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Configurable filtering of regular-expression matches from interactive input.
 - Bundled rules for `ls`, `pwd`, and simple two-token `git` commands.
 - Optional user configuration through the XDG configuration directory.
+- Named rules that user configuration can disable, override, or extend by ID.
+- Backward compatibility with the original append-only `patterns` configuration.
 - Automated tests and open source project documentation.
 
 [Unreleased]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.1.0...HEAD

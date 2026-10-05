@@ -49,19 +49,64 @@ pi --no-extensions --extension ./extensions/prompt-filter/index.ts
 
 ## Configuration
 
-The bundled defaults are stored in [`extensions/prompt-filter/config.json`](extensions/prompt-filter/config.json):
+The bundled defaults are stored as named rules in [`extensions/prompt-filter/config.json`](extensions/prompt-filter/config.json):
 
 ```json
 {
-  "patterns": [
-    { "pattern": "^ls$" },
-    { "pattern": "^pwd$" },
-    { "pattern": "^git\\s+\\S+$" }
+  "rules": [
+    { "id": "ls", "pattern": "^ls$" },
+    { "id": "pwd", "pattern": "^pwd$" },
+    { "id": "git-simple", "pattern": "^git\\s+\\S+$" }
   ]
 }
 ```
 
-Add personal rules in `$XDG_CONFIG_HOME/pi/prompt-filter.json`, or `~/.config/pi/prompt-filter.json` when `XDG_CONFIG_HOME` is unset. Personal rules are appended to the bundled defaults.
+Add personal configuration in `$XDG_CONFIG_HOME/pi/prompt-filter.json`, or `~/.config/pi/prompt-filter.json` when `XDG_CONFIG_HOME` is unset. User rules are merged with bundled rules by `id`: an existing ID overrides that default in place, a new ID appends a rule, and `"enabled": false` disables the named rule.
+
+### Disable a default rule
+
+```json
+{
+  "rules": [
+    {
+      "id": "git-simple",
+      "enabled": false
+    }
+  ]
+}
+```
+
+Disabling an ID that does not exist has no effect. The remaining defaults continue to apply.
+
+### Override a default and add a rule
+
+```json
+{
+  "rules": [
+    {
+      "id": "git-simple",
+      "pattern": "^git\\s+(?:status|diff)$",
+      "flags": "i"
+    },
+    {
+      "id": "vim",
+      "pattern": "^vim(?:\\s|$)",
+      "flags": "i"
+    }
+  ]
+}
+```
+
+Named rule fields are:
+
+- `id` (required): A unique identifier beginning with an alphanumeric character and containing only letters, numbers, dots, underscores, or hyphens.
+- `pattern`: A JavaScript regular-expression source string. It is required for a new enabled rule and optional when overriding an existing rule.
+- `flags`: JavaScript regular-expression flags such as `i`, `m`, or `u`. An override inherits the default flags when this field is omitted; set it to `""` to clear inherited flags.
+- `enabled`: Set to `false` to disable the rule. It defaults to `true`.
+
+### Legacy configuration
+
+The original `patterns` format remains supported so existing personal configuration continues to work:
 
 ```json
 {
@@ -74,12 +119,9 @@ Add personal rules in `$XDG_CONFIG_HOME/pi/prompt-filter.json`, or `~/.config/pi
 }
 ```
 
-Each entry supports:
+Legacy patterns are appended after named rules and cannot disable or override a default. Use named `rules` for new configuration.
 
-- `pattern` (required): A JavaScript regular-expression source string.
-- `flags` (optional): JavaScript regular-expression flags such as `i`, `m`, or `u`.
-
-Patterns are tested against the complete input exactly as entered; input is not trimmed or normalized. Run `/reload` after changing configuration. Invalid JSON or regular expressions prevent the extension from loading and are reported by Pi.
+Patterns are tested against the complete input exactly as entered; input is not trimmed or normalized. Run `/reload` after changing configuration. Invalid JSON, invalid rules, or invalid regular expressions prevent the extension from loading and are reported by Pi.
 
 ## How it works
 

@@ -5,33 +5,78 @@ import { join } from "node:path";
 import test from "node:test";
 import { loadPatterns, matchesAnyPattern, parseConfig } from "../src/patterns.js";
 
-test("parseConfig validates the top-level patterns array", () => {
-  assert.throws(() => parseConfig("{}", "test.json"), /patterns.*must be an array/);
-});
-
-test("parseConfig validates pattern fields", () => {
-  assert.throws(
-    () => parseConfig('{"patterns":[{"pattern":42}]}', "test.json"),
-    /pattern 0.*pattern.*must be a string/,
-  );
-  assert.throws(
-    () => parseConfig('{"patterns":[{"pattern":"x","flags":42}]}', "test.json"),
-    /pattern 0.*flags.*must be a string/,
-  );
-});
-
-test("loadPatterns appends user patterns to defaults", () => {
+function temporaryConfig(contents) {
   const directory = mkdtempSync(join(tmpdir(), "pi-prompt-filter-"));
-  const defaults = join(directory, "defaults.json");
-  const user = join(directory, "user.json");
+  const path = join(directory, "config.json");
+  writeFileSync(path, contents);
+  return path;
+}
 
-  writeFileSync(defaults, '{"patterns":[{"pattern":"^ls$"}]}');
-  writeFileSync(user, '{"patterns":[{"pattern":"^vim(?:\\\\s|$)","flags":"i"}]}');
+test("parseConfig validates the top-level rules array", () => {
+  assert.throws(() => parseConfig("{}", "test.json"), /must define a "rules" array/);
+  assert.throws(() => parseConfig('{"rules":{}}', "test.json"), /"rules" must be an array/);
+});
+
+test("parseConfig validates named rule fields", () => {
+  assert.throws(
+    () => parseConfig('{"rules":[{"id":"bad id","pattern":"x"}]}', "test.json"),
+    /rule 0.*"id"/,
+  );
+  assert.throws(
+    () => parseConfig('{"rules":[{"id":"x","pattern":42}]}', "test.json"),
+    /rule "x".*"pattern" must be a string/,
+  );
+  assert.throws(
+    () => parseConfig('{"rules":[{"id":"x","enabled":"no"}]}', "test.json"),
+    /rule "x".*"enabled" must be a boolean/,
+  );
+});
+
+test("parseConfig rejects duplicate rule IDs", () => {
+  assert.throws(
+    () => parseConfig('{"rules":[{"id":"x","pattern":"x"},{"id":"x","pattern":"y"}]}', "test.json"),
+    /duplicate rule id "x"/,
+  );
+});
+
+test("user rules can disable, override, and add named rules", () => {
+  const defaults = temporaryConfig(
+    '{"rules":[{"id":"ls","pattern":"^ls$"},{"id":"git-simple","pattern":"^git\\\\s+\\\\S+$"},{"id":"case","pattern":"^hello$","flags":"i"}]}',
+  );
+  const user = temporaryConfig(
+    '{"rules":[{"id":"ls","enabled":false},{"id":"git-simple","pattern":"^git\\\\s+(?:status|diff)$"},{"id":"case","pattern":"^goodbye$"},{"id":"vim","pattern":"^vim(?:\\\\s|$)","flags":"i"}]}',
+  );
 
   const patterns = loadPatterns(defaults, user);
+  assert.equal(matchesAnyPattern("ls", patterns), false);
+  assert.equal(matchesAnyPattern("git status", patterns), true);
+  assert.equal(matchesAnyPattern("git checkout", patterns), false);
+  assert.equal(matchesAnyPattern("GOODBYE", patterns), true, "an omitted flags field preserves the default flags");
+  assert.equal(matchesAnyPattern("VIM file.txt", patterns), true);
+});
+
+test("an empty flags string clears inherited flags", () => {
+  const defaults = temporaryConfig('{"rules":[{"id":"case","pattern":"^hello$","flags":"i"}]}');
+  const user = temporaryConfig('{"rules":[{"id":"case","flags":""}]}');
+  const patterns = loadPatterns(defaults, user);
+
+  assert.equal(matchesAnyPattern("hello", patterns), true);
+  assert.equal(matchesAnyPattern("HELLO", patterns), false);
+});
+
+test("new enabled rules must define a pattern", () => {
+  const defaults = temporaryConfig('{"rules":[]}');
+  const user = temporaryConfig('{"rules":[{"id":"missing"}]}');
+  assert.throws(() => loadPatterns(defaults, user), /rule "missing" must define "pattern"/);
+});
+
+test("legacy patterns remain supported and are appended", () => {
+  const defaults = temporaryConfig('{"rules":[{"id":"ls","pattern":"^ls$"}]}');
+  const user = temporaryConfig('{"patterns":[{"pattern":"^vim(?:\\\\s|$)","flags":"i"}]}');
+  const patterns = loadPatterns(defaults, user);
+
   assert.equal(matchesAnyPattern("ls", patterns), true);
   assert.equal(matchesAnyPattern("VIM file.txt", patterns), true);
-  assert.equal(matchesAnyPattern("explain ls", patterns), false);
 });
 
 test("matchesAnyPattern resets global regular expressions", () => {
@@ -40,10 +85,7 @@ test("matchesAnyPattern resets global regular expressions", () => {
   assert.equal(matchesAnyPattern("pwd", patterns), true);
 });
 
-test("loadPatterns reports invalid regular expressions", () => {
-  const directory = mkdtempSync(join(tmpdir(), "pi-prompt-filter-"));
-  const config = join(directory, "config.json");
-  writeFileSync(config, '{"patterns":[{"pattern":"["}]}');
-
-  assert.throws(() => loadPatterns(config), /invalid regular expression/);
+test("loadPatterns reports the ID of an invalid named rule", () => {
+  const config = temporaryConfig('{"rules":[{"id":"broken","pattern":"["}]}');
+  assert.throws(() => loadPatterns(config), /rule "broken": invalid regular expression/);
 });
