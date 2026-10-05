@@ -8,7 +8,9 @@ The extension only examines input whose source is `interactive`. It does not alt
 
 ## Installation
 
-Install directly from GitHub:
+### Global installation
+
+Install from GitHub for use in every project. Pi records the package in `~/.pi/agent/settings.json`:
 
 ```sh
 pi install git:github.com/datfinesoul/pi-prompt-filter
@@ -20,7 +22,21 @@ Alternatively, install a local checkout:
 pi install /path/to/pi-prompt-filter
 ```
 
-Run `/reload` in an existing Pi session or start a new session after installation.
+### Project installation
+
+From the target project directory, add `--local` (or `-l`) to record the package in `.pi/settings.json` for that project only:
+
+```sh
+pi install --local git:github.com/datfinesoul/pi-prompt-filter
+```
+
+A local checkout can also be installed at project scope:
+
+```sh
+pi install --local /path/to/pi-prompt-filter
+```
+
+Project packages load only after Pi grants project trust. Run `/reload` in an existing Pi session or start a new session after either type of installation.
 
 To try the extension without adding it to Pi's settings:
 
