@@ -1,0 +1,13 @@
+{
+  "patterns": [
+    {
+      "pattern": "^ls$"
+    },
+    {
+      "pattern": "^pwd$"
+    },
+    {
+      "pattern": "^git\\s+\\S+$"
+    }
+  ]
+}

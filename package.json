@@ -1,0 +1,44 @@
+{
+  "name": "@datfinesoul/pi-prompt-filter",
+  "version": "0.1.0",
+  "description": "A Pi extension that prevents configurable interactive prompts from being sent to the model.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Philip Hadviger <613305+datfinesoul@users.noreply.github.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datfinesoul/pi-prompt-filter.git"
+  },
+  "homepage": "https://github.com/datfinesoul/pi-prompt-filter#readme",
+  "bugs": {
+    "url": "https://github.com/datfinesoul/pi-prompt-filter/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "prompt-filter"
+  ],
+  "files": [
+    "extensions/",
+    "src/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "npm test",
+    "pack:check": "npm pack --dry-run"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/prompt-filter/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
