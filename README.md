@@ -50,7 +50,6 @@ To try the extension from a checkout without adding it to Pi's settings:
 pi --no-extensions --extension ./extensions/prompt-filter/index.ts
 ```
 
-> [!NOTE]
 > If this package replaces a manually installed `~/.pi/agent/extensions/prompt-filter` directory, remove or relocate the old copy after installing the package so Pi does not load both copies.
 
 </details>
