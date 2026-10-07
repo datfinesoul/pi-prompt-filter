@@ -1,16 +1,40 @@
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { resolveConfigPaths } from "../../src/config-paths.js";
 import { loadPatterns, matchesAnyPattern } from "../../src/patterns.js";
 
 const extensionDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultConfigPath = join(extensionDirectory, "config.json");
-const userConfigPath = join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "pi", "prompt-filter.json");
 
 export default function promptFilter(pi: ExtensionAPI) {
-  const patterns = loadPatterns(defaultConfigPath, existsSync(userConfigPath) ? userConfigPath : undefined);
+  // Bundled rules must always be valid; failing here reports a packaging error.
+  const bundledPatterns = loadPatterns(defaultConfigPath);
+  let patterns = bundledPatterns;
+
+  function loadLayeredPatterns(ctx: ExtensionContext) {
+    const paths = resolveConfigPaths({
+      agentDir: getAgentDir(),
+      cwd: ctx.cwd,
+      // Project rules change how prompts are handled, so honor Pi's project trust.
+      projectTrusted: ctx.isProjectTrusted(),
+    });
+
+    try {
+      patterns = loadPatterns(defaultConfigPath, paths.global, paths.project);
+    } catch (error) {
+      patterns = bundledPatterns;
+      ctx.ui.notify(
+        `prompt-filter: ${error instanceof Error ? error.message : String(error)}. Using bundled rules only.`,
+        "error",
+      );
+    }
+  }
+
+  pi.on("session_start", (_event, ctx) => {
+    loadLayeredPatterns(ctx);
+  });
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "interactive") {

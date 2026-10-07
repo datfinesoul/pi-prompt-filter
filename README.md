@@ -4,8 +4,6 @@
 
 A standalone [Pi](https://github.com/earendil-works/pi) extension that prevents configured interactive prompts from being sent to the model when they match a regular expression. It is useful for catching commands such as `ls` or `pwd` that were typed into Pi without the shell-command prefix.
 
-The extension only examines input whose source is `interactive`. It does not alter extension-injected messages, non-interactive prompts, or tool calls.
-
 ## Installation
 
 ### Global installation
@@ -38,6 +36,8 @@ pi install --local /path/to/pi-prompt-filter
 
 Project packages load only after Pi grants project trust. Run `/reload` in an existing Pi session or start a new session after either type of installation.
 
+Where the extension is installed and where rules come from are independent. A global installation still reads a trusted project's rules, and a project installation still reads your global rules. See [Configuration layers](#configuration-layers).
+
 To try the extension without adding it to Pi's settings:
 
 ```sh
@@ -47,9 +47,30 @@ pi --no-extensions --extension ./extensions/prompt-filter/index.ts
 > [!NOTE]
 > If this package replaces a manually installed `~/.pi/agent/extensions/prompt-filter` directory, remove or relocate the old copy after installing the package so Pi does not load both copies.
 
-## Configuration
+## Usage
 
-The bundled defaults are stored as named rules in [`extensions/prompt-filter/config.json`](extensions/prompt-filter/config.json):
+- Type a prompt as usual. If it matches an enabled rule, Pi shows a warning and does not send it to the model.
+- Only `interactive` input is examined. Extension-injected messages, non-interactive prompts, and tool calls are never filtered.
+- Patterns are tested against the complete input exactly as entered; input is not trimmed or normalized.
+
+## Configuration layers
+
+Rules are merged from three files, from lowest to highest precedence:
+
+| Layer | File | Notes |
+|---|---|---|
+| Bundled | [`extensions/prompt-filter/config.json`](extensions/prompt-filter/config.json) | Defaults shipped with the package |
+| Global | `~/.pi/agent/prompt-filter.json` | Personal rules for every project; follows `PI_CODING_AGENT_DIR` |
+| Project | `<project>/.pi/prompt-filter.json` | Loaded from the working directory only after Pi grants project trust |
+
+Rules are identified by `id`. A rule whose ID already exists in a lower layer overrides that rule field by field:
+
+- Fields it declares replace the inherited values; omitted fields are inherited.
+- `"enabled": false` disables the rule. A higher layer can restore it by declaring the ID again with a `pattern`.
+
+A rule with a new ID adds a rule.
+
+The bundled defaults are:
 
 ```json
 {
@@ -61,9 +82,41 @@ The bundled defaults are stored as named rules in [`extensions/prompt-filter/con
 }
 ```
 
-Add personal configuration in `$XDG_CONFIG_HOME/pi/prompt-filter.json`, or `~/.config/pi/prompt-filter.json` when `XDG_CONFIG_HOME` is unset. User rules are merged with bundled rules by `id`: an existing ID overrides that default in place, a new ID appends a rule, and `"enabled": false` disables the named rule.
+### Add a rule
 
-### Disable a default rule
+Create `~/.pi/agent/prompt-filter.json`, or `.pi/prompt-filter.json` to share it with a project:
+
+```json
+{
+  "rules": [
+    {
+      "id": "vim",
+      "pattern": "^vim(?:\\s|$)",
+      "flags": "i"
+    }
+  ]
+}
+```
+
+### Change a bundled rule
+
+Override only the fields you want to change. This example narrows the bundled `git-simple` rule and makes it case-insensitive:
+
+```json
+{
+  "rules": [
+    {
+      "id": "git-simple",
+      "pattern": "^git\\s+(?:status|diff)$",
+      "flags": "i"
+    }
+  ]
+}
+```
+
+### Disable a rule
+
+Disable the bundled `git-simple` rule for one project with `.pi/prompt-filter.json`:
 
 ```json
 {
@@ -76,56 +129,22 @@ Add personal configuration in `$XDG_CONFIG_HOME/pi/prompt-filter.json`, or `~/.c
 }
 ```
 
-Disabling an ID that does not exist has no effect. The remaining defaults continue to apply.
+Disabling an ID that does not exist has no effect. The remaining rules continue to apply.
 
-### Override a default and add a rule
+### Rule fields
 
-```json
-{
-  "rules": [
-    {
-      "id": "git-simple",
-      "pattern": "^git\\s+(?:status|diff)$",
-      "flags": "i"
-    },
-    {
-      "id": "vim",
-      "pattern": "^vim(?:\\s|$)",
-      "flags": "i"
-    }
-  ]
-}
-```
+| Field | Required | Notes |
+|---|---|---|
+| `id` | Yes | Starts with a letter or digit and contains only letters, digits, dots, underscores, or hyphens; must be unique within a file |
+| `pattern` | For new rules | JavaScript regular-expression source string; optional when overriding an existing rule |
+| `flags` | No | JavaScript regular-expression flags such as `i`, `m`, or `u`; inherited when omitted, and `""` clears inherited flags |
+| `enabled` | No | Set to `false` to disable the rule; defaults to `true` |
 
-Named rule fields are:
-
-- `id` (required): A unique identifier beginning with an alphanumeric character and containing only letters, numbers, dots, underscores, or hyphens.
-- `pattern`: A JavaScript regular-expression source string. It is required for a new enabled rule and optional when overriding an existing rule.
-- `flags`: JavaScript regular-expression flags such as `i`, `m`, or `u`. An override inherits the default flags when this field is omitted; set it to `""` to clear inherited flags.
-- `enabled`: Set to `false` to disable the rule. It defaults to `true`.
-
-### Legacy configuration
-
-The original `patterns` format remains supported so existing personal configuration continues to work:
-
-```json
-{
-  "patterns": [
-    {
-      "pattern": "^vim(?:\\s|$)",
-      "flags": "i"
-    }
-  ]
-}
-```
-
-Legacy patterns are appended after named rules and cannot disable or override a default. Use named `rules` for new configuration.
-
-Patterns are tested against the complete input exactly as entered; input is not trimmed or normalized. Run `/reload` after changing configuration. Invalid JSON, invalid rules, or invalid regular expressions prevent the extension from loading and are reported by Pi.
+Configuration is read at session start; run `/reload` after changing it. Invalid JSON, unknown top-level keys, invalid rules, or invalid regular expressions in the global or project file are reported as an error, and only the bundled rules apply until the problem is fixed.
 
 ## How it works
 
-When an interactive prompt matches any configured expression, the extension marks the input as handled and displays a warning. Pi therefore does not send that input to the model. This convenience filter is not a security boundary: anyone who can edit its configuration or extension files can change its behavior.
+When an interactive prompt matches any configured expression, the extension marks the input as handled and displays a warning. Pi therefore does not send that input to the model. This convenience filter is not a security boundary: anyone who can edit its configuration or extension files can change its behavior. See [SECURITY.md](SECURITY.md).
 
 ## Development
 

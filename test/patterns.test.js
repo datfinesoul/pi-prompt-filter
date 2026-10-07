@@ -14,7 +14,11 @@ function temporaryConfig(contents) {
 
 test("parseConfig validates the top-level rules array", () => {
   assert.throws(() => parseConfig("{}", "test.json"), /must define a "rules" array/);
-  assert.throws(() => parseConfig('{"rules":{}}', "test.json"), /"rules" must be an array/);
+  assert.throws(() => parseConfig('{"rules":{}}', "test.json"), /must define a "rules" array/);
+});
+
+test("parseConfig rejects unknown top-level keys", () => {
+  assert.throws(() => parseConfig('{"rules":[],"patterns":[]}', "test.json"), /unknown configuration key\(s\): "patterns"/);
 });
 
 test("parseConfig validates named rule fields", () => {
@@ -70,15 +74,6 @@ test("new enabled rules must define a pattern", () => {
   assert.throws(() => loadPatterns(defaults, user), /rule "missing" must define "pattern"/);
 });
 
-test("legacy patterns remain supported and are appended", () => {
-  const defaults = temporaryConfig('{"rules":[{"id":"ls","pattern":"^ls$"}]}');
-  const user = temporaryConfig('{"patterns":[{"pattern":"^vim(?:\\\\s|$)","flags":"i"}]}');
-  const patterns = loadPatterns(defaults, user);
-
-  assert.equal(matchesAnyPattern("ls", patterns), true);
-  assert.equal(matchesAnyPattern("VIM file.txt", patterns), true);
-});
-
 test("matchesAnyPattern resets global regular expressions", () => {
   const patterns = [/^pwd$/g];
   assert.equal(matchesAnyPattern("pwd", patterns), true);
@@ -88,4 +83,24 @@ test("matchesAnyPattern resets global regular expressions", () => {
 test("loadPatterns reports the ID of an invalid named rule", () => {
   const config = temporaryConfig('{"rules":[{"id":"broken","pattern":"["}]}');
   assert.throws(() => loadPatterns(config), /rule "broken": invalid regular expression/);
+});
+
+test("project rules override global rules, which override bundled rules", () => {
+  const defaults = temporaryConfig('{"rules":[{"id":"ls","pattern":"^ls$"},{"id":"pwd","pattern":"^pwd$"}]}');
+  const global = temporaryConfig('{"rules":[{"id":"ls","pattern":"^ls -la$"},{"id":"vim","pattern":"^vim$"}]}');
+  const project = temporaryConfig('{"rules":[{"id":"pwd","enabled":false},{"id":"ls","pattern":"^ls -l$"}]}');
+  const patterns = loadPatterns(defaults, global, project);
+
+  assert.equal(matchesAnyPattern("ls -l", patterns), true, "project override wins");
+  assert.equal(matchesAnyPattern("ls -la", patterns), false);
+  assert.equal(matchesAnyPattern("pwd", patterns), false, "project can disable a bundled rule");
+  assert.equal(matchesAnyPattern("vim", patterns), true, "global additions remain");
+});
+
+test("undefined override layers are skipped", () => {
+  const defaults = temporaryConfig('{"rules":[{"id":"ls","pattern":"^ls$"}]}');
+  const project = temporaryConfig('{"rules":[{"id":"pwd","pattern":"^pwd$"}]}');
+  const patterns = loadPatterns(defaults, undefined, project);
+  assert.equal(matchesAnyPattern("ls", patterns), true);
+  assert.equal(matchesAnyPattern("pwd", patterns), true);
 });
