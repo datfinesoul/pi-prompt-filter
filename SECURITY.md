@@ -12,4 +12,4 @@ Include a description of the issue, affected versions, reproduction steps, poten
 
 ## Security model
 
-Pi extensions execute with the same operating-system permissions as Pi. Review extension source before installation and protect both the package files and prompt-filter configuration from untrusted modification. This extension reduces accidental prompt submission; it is not a sandbox, authorization control, or security boundary.
+Pi extensions execute with the same operating-system permissions as Pi. Review extension source before installation and protect both the package files and prompt-filter configuration from untrusted modification. Project configuration in `.pi/prompt-filter.json` is loaded only after Pi grants project trust; review it before trusting a repository. This extension reduces accidental prompt submission; it is not a sandbox, authorization control, or security boundary.

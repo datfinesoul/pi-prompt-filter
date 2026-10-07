@@ -2,17 +2,13 @@ import { readFileSync } from "node:fs";
 
 /**
  * @typedef {{ id: string, pattern?: string, flags?: string, enabled?: boolean }} RuleConfig
- * @typedef {{ pattern: string, flags?: string }} LegacyPatternConfig
- * @typedef {{ rules: RuleConfig[], patterns: LegacyPatternConfig[] }} ParsedConfig
+ * @typedef {{ rules: RuleConfig[] }} ParsedConfig
  */
 
 const RULE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 /**
  * Parse and validate a prompt-filter configuration document.
- *
- * The legacy `patterns` array remains supported for compatibility. Legacy
- * patterns are always appended and cannot override named rules.
  *
  * @param {string} contents
  * @param {string} source
@@ -31,20 +27,17 @@ export function parseConfig(contents, source) {
     throw new Error(`${source}: configuration must be an object`);
   }
 
-  if (config.rules === undefined && config.patterns === undefined) {
+  const unknownKeys = Object.keys(config).filter((key) => key !== "rules");
+  if (unknownKeys.length > 0) {
+    throw new Error(`${source}: unknown configuration key(s): ${unknownKeys.map((key) => `"${key}"`).join(", ")}`);
+  }
+
+  if (!Array.isArray(config.rules)) {
     throw new Error(`${source}: configuration must define a "rules" array`);
   }
 
-  if (config.rules !== undefined && !Array.isArray(config.rules)) {
-    throw new Error(`${source}: "rules" must be an array`);
-  }
-
-  if (config.patterns !== undefined && !Array.isArray(config.patterns)) {
-    throw new Error(`${source}: "patterns" must be an array`);
-  }
-
   const seenIds = new Set();
-  const rules = (config.rules ?? []).map((entry, index) => {
+  const rules = config.rules.map((entry, index) => {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`${source}: rule ${index} must be an object`);
     }
@@ -78,19 +71,7 @@ export function parseConfig(contents, source) {
     };
   });
 
-  const patterns = (config.patterns ?? []).map((entry, index) => {
-    if (entry === null || typeof entry !== "object" || Array.isArray(entry) || typeof entry.pattern !== "string") {
-      throw new Error(`${source}: legacy pattern ${index}: "pattern" must be a string`);
-    }
-
-    if (entry.flags !== undefined && typeof entry.flags !== "string") {
-      throw new Error(`${source}: legacy pattern ${index}: "flags" must be a string when provided`);
-    }
-
-    return { pattern: entry.pattern, ...(entry.flags === undefined ? {} : { flags: entry.flags }) };
-  });
-
-  return { rules, patterns };
+  return { rules };
 }
 
 /**
@@ -132,33 +113,26 @@ function applyRules(effectiveRules, configuredRules, source) {
 }
 
 /**
- * Compile default rules, user overrides, and backward-compatible legacy
- * patterns.
+ * Compile bundled rules and override layers. Override layers are applied in
+ * order, so later paths take precedence. Undefined override paths are skipped.
  *
  * @param {string} defaultConfigPath
- * @param {string | undefined} userConfigPath
+ * @param {...(string | undefined)} overrideConfigPaths
  * @returns {RegExp[]}
  */
-export function loadPatterns(defaultConfigPath, userConfigPath) {
-  const defaultConfig = readConfig(defaultConfigPath);
-  const userConfig = userConfigPath === undefined ? { rules: [], patterns: [] } : readConfig(userConfigPath);
+export function loadPatterns(defaultConfigPath, ...overrideConfigPaths) {
+  const configPaths = [defaultConfigPath, ...overrideConfigPaths.filter((path) => path !== undefined)];
   const effectiveRules = new Map();
 
-  applyRules(effectiveRules, defaultConfig.rules, defaultConfigPath);
-  applyRules(effectiveRules, userConfig.rules, userConfigPath ?? "user configuration");
+  for (const configPath of configPaths) {
+    applyRules(effectiveRules, readConfig(configPath).rules, configPath);
+  }
 
-  const configuredPatterns = [
-    ...effectiveRules.values(),
-    ...defaultConfig.patterns,
-    ...userConfig.patterns,
-  ];
-
-  return configuredPatterns.map((entry, index) => {
+  return [...effectiveRules.values()].map((rule) => {
     try {
-      return new RegExp(entry.pattern, entry.flags ?? "");
+      return new RegExp(rule.pattern, rule.flags ?? "");
     } catch (error) {
-      const label = "id" in entry ? `rule "${entry.id}"` : `legacy pattern ${index}`;
-      throw new Error(`prompt-filter ${label}: invalid regular expression: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`prompt-filter rule "${rule.id}": invalid regular expression: ${error instanceof Error ? error.message : String(error)}`);
     }
   });
 }

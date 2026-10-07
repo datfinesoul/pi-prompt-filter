@@ -1,6 +1,6 @@
 {
   "name": "@datfinesoul/pi-prompt-filter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Pi extension that prevents configurable interactive prompts from being sent to the model.",
   "type": "module",
   "license": "MIT",
