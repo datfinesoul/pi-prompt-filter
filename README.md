@@ -14,12 +14,6 @@ Install from GitHub for use in every project. Pi records the package in `~/.pi/a
 pi install git:github.com/datfinesoul/pi-prompt-filter
 ```
 
-Alternatively, install a local checkout:
-
-```sh
-pi install /path/to/pi-prompt-filter
-```
-
 ### Project installation
 
 From the target project directory, add `--local` (or `-l`) to record the package in `.pi/settings.json` for that project only:
@@ -28,21 +22,35 @@ From the target project directory, add `--local` (or `-l`) to record the package
 pi install --local git:github.com/datfinesoul/pi-prompt-filter
 ```
 
-A local checkout can also be installed at project scope:
+Project packages load only after Pi grants project trust. Run `/reload` in an existing Pi session or start a new session after either type of installation.
+
+Where the extension is installed and where rules come from are independent. A global installation still reads a trusted project's rules, and a project installation still reads your global rules. See [Configuration layers](#configuration-layers).
+
+> [!NOTE]
+> Pi identifies a package by where it was installed from. Installing pi-prompt-filter globally and for a project from the same source is fine: the project installation replaces the global one. Installing it from different locations, such as GitHub globally and a local checkout for a project, loads both copies, and Pi does not reconcile them.
+
+<details>
+<summary>Install from a local checkout</summary>
+
+Install a local checkout globally:
+
+```sh
+pi install /path/to/pi-prompt-filter
+```
+
+Or for the current project only:
 
 ```sh
 pi install --local /path/to/pi-prompt-filter
 ```
 
-Project packages load only after Pi grants project trust. Run `/reload` in an existing Pi session or start a new session after either type of installation.
-
-Where the extension is installed and where rules come from are independent. A global installation still reads a trusted project's rules, and a project installation still reads your global rules. See [Configuration layers](#configuration-layers).
-
-To try the extension without adding it to Pi's settings:
+To try the extension from a checkout without adding it to Pi's settings:
 
 ```sh
 pi --no-extensions --extension ./extensions/prompt-filter/index.ts
 ```
+
+</details>
 
 > [!NOTE]
 > If this package replaces a manually installed `~/.pi/agent/extensions/prompt-filter` directory, remove or relocate the old copy after installing the package so Pi does not load both copies.
