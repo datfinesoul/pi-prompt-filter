@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-16
+
+### Changed
+
+- Merges to `main` that bump the version are tagged `v<version>` automatically after CI passes, and pull requests that trigger CI must bump the version with a matching changelog section.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added
@@ -30,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backward compatibility with the original append-only `patterns` configuration.
 - Automated tests and open source project documentation.
 
-[Unreleased]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/datfinesoul/pi-prompt-filter/releases/tag/v0.1.0
