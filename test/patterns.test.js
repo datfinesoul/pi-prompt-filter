@@ -5,6 +5,65 @@ import { join } from "node:path";
 import test from "node:test";
 import { loadPatterns, matchesAnyPattern, parseConfig } from "../src/patterns.js";
 
+const bundledConfigPath = new URL("../extensions/prompt-filter/config.json", import.meta.url);
+
+test("bundled rules block agreed accidental commands", () => {
+  const patterns = loadPatterns(bundledConfigPath);
+  for (const text of [
+    "ls", "pwd", "git status", "exit", "quit", "/exit",
+    "cd", "cd ..", "cd relative/path", "cd a path with spaces", 'cd "a path"',
+    " cd .. ", "\tcd\t..\t", "cd ", "cd explain this",
+    ":q", ":wq", ":q!", ":wq!", ":qa", ":qa!", ":wqa", ":wqa!", ":x", ":x!",
+  ]) {
+    assert.equal(matchesAnyPattern(text, patterns), true, JSON.stringify(text));
+  }
+});
+
+test("new bundled rules preserve ordinary prompts and command boundaries", () => {
+  const patterns = loadPatterns(bundledConfigPath);
+  for (const text of [
+    "/quit", "/reload", "/help", "/exit now", "/exit!", "/cd", "/q",
+    "EXIT", "QUIT", "CD", ":Q", " exit", "exit ", "quit\t", " :q", ":q ",
+    "exit now", "quit please", "exiting", "cdrom", "cd..", ":q!!", ":write",
+    "Explain cd ..", "How do I exit?",
+  ]) {
+    assert.equal(matchesAnyPattern(text, patterns), false, JSON.stringify(text));
+  }
+  for (const separator of ["\n", "\r", "\r\n", "\u2028", "\u2029"]) {
+    for (const command of ["exit", "quit", "/exit", "cd", "cd ..", ":q", ":wqa!"]) {
+      for (const text of [command + separator, command + separator + "hello", separator + command]) {
+        assert.equal(matchesAnyPattern(text, patterns), false, JSON.stringify(text));
+      }
+    }
+  }
+});
+
+test("personal rules retain precedence over the new bundled defaults", () => {
+  const global = temporaryConfig(JSON.stringify({ rules: [
+    { id: "exit", pattern: "^(?:/?exit|quit)$" },
+    { id: "cd", pattern: "^cd(?:\\s+.+)?$" },
+    { id: "vim-quit", pattern: "^:(?:q|wq)$" },
+  ] }));
+  const patterns = loadPatterns(bundledConfigPath, global);
+  assert.equal(matchesAnyPattern(":q!", patterns), false);
+  assert.equal(matchesAnyPattern(" cd .. ", patterns), false);
+  assert.equal(matchesAnyPattern("cd\nhello", patterns), true);
+  assert.equal(matchesAnyPattern("ls", patterns), true);
+});
+
+test("projects can disable the new bundled rules by ID", () => {
+  const project = temporaryConfig(JSON.stringify({ rules: [
+    { id: "exit", enabled: false },
+    { id: "cd", enabled: false },
+    { id: "vim-quit", enabled: false },
+  ] }));
+  const patterns = loadPatterns(bundledConfigPath, undefined, project);
+  for (const text of ["exit", "quit", "/exit", "cd ..", ":q", ":x!"]) {
+    assert.equal(matchesAnyPattern(text, patterns), false, text);
+  }
+  assert.equal(matchesAnyPattern("pwd", patterns), true);
+});
+
 function temporaryConfig(contents) {
   const directory = mkdtempSync(join(tmpdir(), "pi-prompt-filter-"));
   const path = join(directory, "config.json");
