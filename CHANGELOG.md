@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-09
+
+### Added
+
+- Bundled rules for `exit`, `quit`, `/exit`, single-line `cd` commands, and Vim exit commands. The new rules exclude multiline input and preserve existing global and project overrides by ID.
+
 ## [0.2.1] - 2026-10-16
 
 ### Changed
@@ -36,7 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backward compatibility with the original append-only `patterns` configuration.
 - Automated tests and open source project documentation.
 
-[Unreleased]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/datfinesoul/pi-prompt-filter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/datfinesoul/pi-prompt-filter/releases/tag/v0.1.0

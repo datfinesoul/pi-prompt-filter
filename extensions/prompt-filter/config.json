@@ -11,6 +11,18 @@
     {
       "id": "git-simple",
       "pattern": "^git\\s+\\S+$"
+    },
+    {
+      "id": "exit",
+      "pattern": "^(?:/?exit|quit)(?![\\s\\S])"
+    },
+    {
+      "id": "cd",
+      "pattern": "^[ \\t]*cd(?:[ \\t]+[^\\r\\n\\u2028\\u2029]*)?[ \\t]*(?![\\s\\S])"
+    },
+    {
+      "id": "vim-quit",
+      "pattern": "^:(?:q|wq|qa|wqa|x)!?(?![\\s\\S])"
     }
   ]
 }

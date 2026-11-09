@@ -84,10 +84,21 @@ The bundled defaults are:
   "rules": [
     { "id": "ls", "pattern": "^ls$" },
     { "id": "pwd", "pattern": "^pwd$" },
-    { "id": "git-simple", "pattern": "^git\\s+\\S+$" }
+    { "id": "git-simple", "pattern": "^git\\s+\\S+$" },
+    { "id": "exit", "pattern": "^(?:/?exit|quit)(?![\\s\\S])" },
+    { "id": "cd", "pattern": "^[ \\t]*cd(?:[ \\t]+[^\\r\\n\\u2028\\u2029]*)?[ \\t]*(?![\\s\\S])" },
+    { "id": "vim-quit", "pattern": "^:(?:q|wq|qa|wqa|x)!?(?![\\s\\S])" }
   ]
 }
 ```
+
+The additional command rules are case-sensitive and reject multiline input:
+
+- `exit` blocks exactly `exit`, `quit`, and `/exit`. It does not match surrounding spaces or tabs. Native Pi commands such as `/quit` remain unchanged.
+- `cd` blocks bare `cd` or any single-line argument. It accepts surrounding spaces and tabs, including paths with spaces. It also blocks ambiguous text such as `cd explain this`.
+- `vim-quit` blocks `:q`, `:wq`, `:qa`, `:wqa`, and `:x`, with an optional final `!`. It does not match surrounding spaces or tabs.
+
+The final `(?![\\s\\S])` requires the end of the input, without accepting a final line break. Existing global or project rules with these IDs still override the bundled patterns. Remove an override from your configuration to use the bundled pattern.
 
 ### Add a rule
 
@@ -164,7 +175,7 @@ npm run pack:check
 
 Use `pnpm test` and `pnpm run pack:check` when you use pnpm.
 
-Every pull request that triggers CI must bump `version` in `package.json` and move the `Unreleased` changelog entries under a matching `## [<version>] - <date>` heading; CI fails otherwise. Pull requests that change only Markdown skipped by CI are exempt. After the merge to `main` passes CI, the Release workflow tags that commit `v<version>`. Merges that do not change the version are not tagged.
+Each feature branch that triggers CI gets one version update relative to its base. Keep that version unchanged throughout the branch. Record subsequent user-visible changes under the same matching `## [<version>] - <date>` changelog heading. Do not increment the patch version for each edit, fix, or conversation turn. CI requires the branch version to exceed its base version. Pull requests that change only Markdown skipped by CI are exempt. After merge and successful CI, the Release workflow tags the tested commit `v<version>`. Merges that do not change the version are not tagged.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
