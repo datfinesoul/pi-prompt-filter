@@ -166,7 +166,7 @@ When an interactive prompt matches any configured expression, the extension mark
 
 ## Development
 
-The package requires no runtime dependencies beyond the Pi host. The scripts work with npm or pnpm. Run the test suite and inspect the publishable package with:
+The package requires no runtime dependencies beyond the Pi host. Runtime helpers use `.ts` files without a build step so `/reload` can refresh imported logic. Node.js imports these helpers directly in unit tests. The scripts work with npm or pnpm. Run the test suite and inspect the publishable package with:
 
 ```sh
 npm test

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
-import { resolveConfigPaths } from "../src/config-paths.js";
+import { resolveConfigPaths } from "../src/config-paths.ts";
 
 const agentDir = "/home/me/.pi/agent";
 const cwd = "/work/project";

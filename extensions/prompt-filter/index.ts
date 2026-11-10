@@ -2,8 +2,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { resolveConfigPaths } from "../../src/config-paths.js";
-import { loadPatterns, matchesAnyPattern } from "../../src/patterns.js";
+import { resolveConfigPaths } from "../../src/config-paths.ts";
+import { loadPatterns, matchesAnyPattern } from "../../src/patterns.ts";
 
 const extensionDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultConfigPath = join(extensionDirectory, "config.json");
