@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { loadPatterns, matchesAnyPattern, parseConfig } from "../src/patterns.js";
+import { loadPatterns, matchesAnyPattern, parseConfig } from "../src/patterns.ts";
 
 const bundledConfigPath = new URL("../extensions/prompt-filter/config.json", import.meta.url);
 
